@@ -12,6 +12,10 @@ from boto.s3.connection import S3Connection
 import time
 import sys
 
+from flask import Flask
+import logging
+from logging.handlers import RotatingFileHandler
+import time
 
 sys.path.append('/Users/amandeep/Github/memexorg/ist/pyht/common/extraction/')
 sys.path.append('/Users/amandeep/Github/memexorg/ist/pyht/common')
@@ -19,6 +23,7 @@ sys.path.append('/Users/amandeep/Github/dig-features/dig/phone')
 sys.path.append('/Users/amandeep/Github/dig-ingest')
 
 from config import Config
+import logging
 
 
 
@@ -34,6 +39,7 @@ from extract_weight import ExtractWeight
 from matchphone import extractPhoneNumbers
 from elasticsearch import Elasticsearch
 
+app = Flask(__name__)
 
 class Ingestor (object):
 
@@ -55,6 +61,8 @@ class Ingestor (object):
         self.esIndexName = configuration.get('ElasticSearch', 'index')
         self.esDocType = configuration.get('ElasticSearch', 'doctype')
         self.esProtocol = configuration.get('ElasticSearch', 'protocol')
+        self.esUserName = configuration.get('ElasticSearch', 'username')
+        self.esPassword = configuration.get('ElasticSearch', 'password')
 
         self.s3KeyID = configuration.get('AWSS3', 'AWS_ACCESS_KEY_ID')
         self.s3SecretKey = configuration.get('AWSS3', 'AWS_SECRET_ACCESS_KEY')
@@ -66,6 +74,7 @@ class Ingestor (object):
         self.splashProtocol = configuration.get('SplashServer', 'protocol')
         self.splashImageWidth = configuration.get('SplashServer', 'imgWidth')
         self.splashImageHeight = configuration.get('SplashServer', 'imgHeight')
+
 
 
     def generateJSON(self,jsonDocument):
@@ -85,8 +94,8 @@ class Ingestor (object):
 
     def publishtoes(self,jsondoc):
 
-        es = Elasticsearch([self.esProtocol+'://' + self.esHostName + ':' + str(self.esPort)], show_ssl_warnings=False)
-
+        esUrl = self.getESObject()
+        es = Elasticsearch([esUrl], show_ssl_warnings=False)
         jsonarray = json.loads(jsondoc)
         jsonobj=jsonarray[0]
         objkey = jsonobj['uri']
@@ -94,14 +103,19 @@ class Ingestor (object):
 
         return res
 
+    def getESObject(self):
+
+        if self.esUserName.strip() != '' and self.esPassword.strip() != '':
+            esUrl = self.esProtocol+'://' + self.esUserName + ":" + self.esPassword + "@" + self.esHostName + ':' + str(self.esPort)
+        else:
+            esUrl = self.esProtocol+'://' + self.esHostName + ':' + str(self.esPort)
+
+        return esUrl
 
     def extractImages(self,soup):
         images = soup.findAll("img")
 
         imagejsonarray=[]
-
-        #cacheimageurls=[]
-        #s3imageurls=[]
 
         s3imageurlprefix = self.s3ImageUrlPrefix
 
@@ -164,19 +178,19 @@ class Ingestor (object):
 
         response=requests.get(splashurl,stream=False)
 
-        self.uploadImagetoS3(response.content,imagename)
-
-        return self.s3ImageUrlPrefix + imagename
+        if response.status_code == requests.codes.ok:
+            self.uploadImagetoS3(response.content,imagename)
+            return self.s3ImageUrlPrefix + imagename
+        else:
+            return ''
 
     def extractFeatures(self,bodyText):
 
             c=Config()
             processedJson={}
-            print "this"
 
             epoch = int(time.mktime(time.strptime(strftime("%Y-%m-%d %H:%M:%S", gmtime()),"%Y-%m-%d %H:%M:%S")))
             processedJson['importime']=epoch
-            #print epoch
 
             address = ExtractAddress(c).test(bodyText)
             addressarray=[]
@@ -186,8 +200,6 @@ class Ingestor (object):
                     addressarray.append(ad["value"])
             processedJson['address']=addressarray
 
-
-
             age = ExtractAge(c).test(bodyText)
             agearray=[]
             if len(age)>0:
@@ -195,9 +207,6 @@ class Ingestor (object):
                     #print "age", ag["value"]
                     agearray.append(ag["value"])
             processedJson['age']=agearray
-
-            #return processedJson
-
 
             email = ExtractEmail(c).test(bodyText)
             emailarray=[]
@@ -207,12 +216,10 @@ class Ingestor (object):
                     emailarray.append(em["value"])
             processedJson['email']=emailarray
 
-
             ethinicity = ExtractEthnicity(c).test(bodyText)
             ethinicityarray=[]
             if len(ethinicity) > 0:
                 for et in ethinicity:
-                    print "ethinicity", et["value"]
                     ethinicityarray.append(et["value"])
             processedJson['ethnicity']=ethinicityarray
 
@@ -231,7 +238,6 @@ class Ingestor (object):
                     #print "name", na["value"]
                     namearray.append(na["value"])
             processedJson['name']=namearray
-
 
             rate = ExtractRate(c).test(bodyText)
             ratearray=[]
@@ -268,12 +274,45 @@ class Ingestor (object):
 
             return processedJson
 
+    def checkIfUrlExists(self,url):
+
+        try:
+            esUrl = self.getESObject()
+            esUrl = esUrl + "/" + self.esIndexName + "/_search"
+            termquery = '{ "filter": { "term": {"url": "' + url + '"}}}'
+            response = requests.post(esUrl,data=termquery)
+
+            if response.status_code == requests.codes.ok:
+                responsejson = json.loads(response.content)
+                totalhits = responsejson['hits']['total']
+                if totalhits:
+                    if int(totalhits) == 0:
+                        return False
+                    else:
+                        return True
+                else:
+                    return False
+            else:
+                return False
+        except Exception as e:
+            print >> sys.stderr, e
+            self.log(e)
+            #raise e
+
+    def log(self,e):
+        app.logger.error('Error:' + e)
 
 def main():
     i=Ingestor()
-    print i.s3ImageUrlPrefix
+    #i.checkIfUrlExists('http://www.my2centsreviews.com/921080/index')
+
 
 print
 
 if __name__ == '__main__':
-  main()
+    todaydate = time.strftime("%m-%d-%Y")
+    filename = 'logs/' + str(todaydate) + '.log'
+    handler = RotatingFileHandler(filename, mode='a',backupCount=1)
+    handler.setLevel(logging.ERROR)
+    app.logger.addHandler(handler)
+    main()
