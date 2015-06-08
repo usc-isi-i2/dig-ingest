@@ -47,6 +47,7 @@ def gethtml():
 
             i=Ingestor()
 
+
             if not(i.checkIfUrlExists(url)):
                 jsonDocument=i.extractFeatures(text)
 
@@ -62,25 +63,32 @@ def gethtml():
 
                 jsonld = i.generateJSON(jsonDocument)
 
-                esresponse = i.publishtoes(jsonld)
+                esresponse=''
+                if jsonld:
+                    esresponse = i.publishtoes(jsonld)
 
 
                 return json.dumps(esresponse)
 
             else:
+                logi("Url: " + url + " already exists")
                 return "Url: " + url + " already exists"
         else:
             return r
 
     except Exception as e:
         print >> sys.stderr, e
-        log(e)
+        loge(e)
         raise e
 
 
-def log(e):
+def loge(message):
 
-    app.logger.error('Error:' + e)
+    app.logger.error('Error:' + message)
+
+def logi(message):
+
+    app.logger.info('INFO:' + message)
 
 if __name__ == '__main__':
 

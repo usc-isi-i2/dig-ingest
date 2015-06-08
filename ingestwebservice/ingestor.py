@@ -88,9 +88,15 @@ class Ingestor (object):
         payload['ContextURL'] = self.ContextURL
         payload['BaseURI'] = self.BaseURI
 
+        self.logi("Calling karma rest service to generate json ld...")
         response = requests.post(karmaurl, data=payload)
 
-        return response.content
+        if response.status_code == requests.codes.ok:
+            self.logi("Json ld generation succeeded")
+            return response.content
+        else:
+            self.loge("Bad response from karma rest server:" + response)
+            return None
 
     def publishtoes(self,jsondoc):
 
@@ -99,8 +105,10 @@ class Ingestor (object):
         jsonarray = json.loads(jsondoc)
         jsonobj=jsonarray[0]
         objkey = jsonobj['uri']
-        res = es.index(index=self.esIndexName, doc_type=self.esDocType, body=json.dumps(jsonobj), id=objkey)
 
+        self.logi("Uploading json to ElasticSearch, id:" + objkey + "...")
+        res = es.index(index=self.esIndexName, doc_type=self.esDocType, body=json.dumps(jsonobj), id=objkey)
+        self.logi("Uploaded json to ElasticSearch, id:" + objkey)
         return res
 
     def getESObject(self):
@@ -156,10 +164,13 @@ class Ingestor (object):
 
         conn = S3Connection(AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY)
 
+        self.logi("Uploading image to s3:" + imagename + "...")
         s3bucket=conn.get_bucket(bucketName)
         s3bucketkey=Key(s3bucket)
         s3bucketkey.key=imagename
         s3bucketkey.set_contents_from_string(imageobject)
+
+        self.logi("Uploaded image to s3:" + imagename)
 
         conn.close()
 
@@ -176,18 +187,23 @@ class Ingestor (object):
 
         imagename=hashlib.sha1(url.encode('utf-8')).hexdigest().upper() +'_screenshot.png'
 
+        self.logi("Getting the screenshot from splash server:" + splashurl + "...")
         response=requests.get(splashurl,stream=False)
 
         if response.status_code == requests.codes.ok:
             self.uploadImagetoS3(response.content,imagename)
+            self.logi("Screenshot image name:" + imagename + " for url:" + url)
             return self.s3ImageUrlPrefix + imagename
         else:
+            self.loge("Bad response from splash server:" + response)
             return ''
 
     def extractFeatures(self,bodyText):
 
             c=Config()
             processedJson={}
+
+            self.logi("Begin feature extraction from url:" + url)
 
             epoch = int(time.mktime(time.strptime(strftime("%Y-%m-%d %H:%M:%S", gmtime()),"%Y-%m-%d %H:%M:%S")))
             processedJson['importime']=epoch
@@ -272,6 +288,8 @@ class Ingestor (object):
                     phonearray.append(pho)
             processedJson['phone']=phonearray
 
+            self.logi("End feature extraction from url:" + url)
+
             return processedJson
 
     def checkIfUrlExists(self,url):
@@ -289,18 +307,24 @@ class Ingestor (object):
                     if int(totalhits) == 0:
                         return False
                     else:
+                        self.logi("The url:" + url + " already exists in ElasticSearch")
                         return True
                 else:
+                    self.loge("Bad ElasticSearch query response while checking if the url exists:" + response)
                     return False
             else:
+                self.loge("Bad http response while querying ElasticSearch:" + response)
                 return False
         except Exception as e:
             print >> sys.stderr, e
-            self.log(e)
+            self.loge(e)
             #raise e
 
-    def log(self,e):
-        app.logger.error('Error:' + e)
+    def loge(self,message):
+        app.logger.error('Error:' + message)
+
+    def logi(self,message):
+        app.logger.info("INFO:" + message)
 
 def main():
     i=Ingestor()
