@@ -59,7 +59,7 @@ def gethtml():
                 jsonDocument['username']=username
                 jsonDocument['screenshot']=i.getwebpagescreenshot(url)
 
-                print json.dumps(jsonDocument)
+                #print json.dumps(jsonDocument)
 
                 jsonld = i.generateJSON(jsonDocument)
 
@@ -78,8 +78,8 @@ def gethtml():
 
     except Exception as e:
         print >> sys.stderr, e
-        loge(e)
-        raise e
+        loge(str(e))
+        #raise e
 
 
 def loge(message):
@@ -91,10 +91,9 @@ def logi(message):
     app.logger.info('INFO:' + message)
 
 if __name__ == '__main__':
-
     todaydate = time.strftime("%m-%d-%Y")
     filename = 'logs/' + str(todaydate) + '.log'
     handler = RotatingFileHandler(filename, mode='a',backupCount=1)
-    handler.setLevel(logging.ERROR)
+    handler.setLevel(logging.INFO)
     app.logger.addHandler(handler)
     app.run()

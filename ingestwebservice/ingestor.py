@@ -203,7 +203,7 @@ class Ingestor (object):
             c=Config()
             processedJson={}
 
-            self.logi("Begin feature extraction from url:" + url)
+            self.logi("Begin feature extraction...")
 
             epoch = int(time.mktime(time.strptime(strftime("%Y-%m-%d %H:%M:%S", gmtime()),"%Y-%m-%d %H:%M:%S")))
             processedJson['importime']=epoch
@@ -288,7 +288,7 @@ class Ingestor (object):
                     phonearray.append(pho)
             processedJson['phone']=phonearray
 
-            self.logi("End feature extraction from url:" + url)
+            self.logi("End feature extraction.")
 
             return processedJson
 
@@ -310,14 +310,14 @@ class Ingestor (object):
                         self.logi("The url:" + url + " already exists in ElasticSearch")
                         return True
                 else:
-                    self.loge("Bad ElasticSearch query response while checking if the url exists:" + response)
+                    self.loge("Bad ElasticSearch query response while checking if the url exists:" + response.content)
                     return False
             else:
-                self.loge("Bad http response while querying ElasticSearch:" + response)
+                self.loge("Bad http response while querying ElasticSearch:" + response.content)
                 return False
         except Exception as e:
             print >> sys.stderr, e
-            self.loge(e)
+            self.loge(str(e))
             #raise e
 
     def loge(self,message):
@@ -328,15 +328,13 @@ class Ingestor (object):
 
 def main():
     i=Ingestor()
-    #i.checkIfUrlExists('http://www.my2centsreviews.com/921080/index')
-
-
-print
-
-if __name__ == '__main__':
     todaydate = time.strftime("%m-%d-%Y")
     filename = 'logs/' + str(todaydate) + '.log'
     handler = RotatingFileHandler(filename, mode='a',backupCount=1)
-    handler.setLevel(logging.ERROR)
+    handler.setLevel(logging.INFO)
     app.logger.addHandler(handler)
+
+
+
+if __name__ == '__main__':
     main()
