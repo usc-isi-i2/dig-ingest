@@ -43,10 +43,10 @@ app = Flask(__name__)
 
 class Ingestor (object):
 
-    def __init__(self):
+    def __init__(self,formParameters):
 
         configuration = ConfigParser.RawConfigParser()
-        configuration.read('config.properties')
+        configuration.read('config_real.properties')
         self.karmaHostName = configuration.get('KarmaRestServer', 'hostname')
         self.karmaPort = configuration.get('KarmaRestServer', 'port')
         self.karmaProtocol = configuration.get('KarmaRestServer', 'protocol')
@@ -56,13 +56,23 @@ class Ingestor (object):
         self.ContextURL = configuration.get('KarmaRestServer', 'ContextURL')
         self.BaseURI = configuration.get('KarmaRestServer', 'BaseURI')
 
-        self.esHostName = configuration.get('ElasticSearch', 'hostname')
-        self.esPort = configuration.get('ElasticSearch', 'port')
-        self.esIndexName = configuration.get('ElasticSearch', 'index')
-        self.esDocType = configuration.get('ElasticSearch', 'doctype')
-        self.esProtocol = configuration.get('ElasticSearch', 'protocol')
-        self.esUserName = configuration.get('ElasticSearch', 'username')
-        self.esPassword = configuration.get('ElasticSearch', 'password')
+        #.esHostName = configuration.get('ElasticSearch', 'hostname')
+        #self.esPort = configuration.get('ElasticSearch', 'port')
+        #self.esIndexName = configuration.get('ElasticSearch', 'index')
+        #self.esDocType = configuration.get('ElasticSearch', 'doctype')
+        #self.esProtocol = configuration.get('ElasticSearch', 'protocol')
+        #self.esUserName = configuration.get('ElasticSearch', 'username')
+        #self.esPassword = configuration.get('ElasticSearch', 'password')
+
+
+
+        self.esHostName = formParameters['eshost']
+        self.esPort = formParameters['esport']
+        self.esIndexName = formParameters['esindex']
+        self.esDocType = formParameters['esdoctype']
+        self.esProtocol = formParameters['esprotocol']
+        self.esUserName = formParameters['esusername']
+        self.esPassword = formParameters['espassword']
 
         self.s3KeyID = configuration.get('AWSS3', 'AWS_ACCESS_KEY_ID')
         self.s3SecretKey = configuration.get('AWSS3', 'AWS_SECRET_ACCESS_KEY')

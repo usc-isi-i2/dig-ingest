@@ -15,19 +15,28 @@ from ingestor import Ingestor
 
 app = Flask(__name__)
 
-@app.route('/ingest/webpage/')
+@app.route('/ingest/webpage/',methods=['POST'])
 def gethtml():
 
     try:
-        url=request.args.get('url')
+        #url=request.args.get('url')
 
         #get username from the url parameters
-        username=request.args.get('user')
+        #username=request.args.get('user')
 
         #default username, CHECK LATER IF WE NEED THIS
-        if username is None:
-            username='memex'
+        #
 
+
+        jsonForm = json.loads(request.get_data())
+
+
+        url = jsonForm['url']
+
+        username = jsonForm['username']
+
+        if username == '':
+            username='memex'
 
         r = requests.get(url)
 
@@ -45,7 +54,7 @@ def gethtml():
             bodyText=soup.get_text()
             text = os.linesep.join([s for s in bodyText.splitlines() if s])
 
-            i=Ingestor()
+            i=Ingestor(jsonForm)
 
 
             if not(i.checkIfUrlExists(url)):
