@@ -19,17 +19,8 @@ app = Flask(__name__)
 def gethtml():
 
     try:
-        #url=request.args.get('url')
 
-        #get username from the url parameters
-        #username=request.args.get('user')
-
-        #default username, CHECK LATER IF WE NEED THIS
-        #
-
-
-        jsonForm = json.loads(request.get_data())
-
+        jsonForm = json.loads(str(request.get_data()))
 
         url = jsonForm['url']
 
@@ -45,7 +36,7 @@ def gethtml():
 
             #get the title form the web page
             webpagetitle=''
-            if soup.title.text:
+            if soup.title is not None:
                 webpagetitle=soup.title.text
 
             for s in soup.findAll('script'):
@@ -59,13 +50,14 @@ def gethtml():
 
             if not(i.checkIfUrlExists(url)):
                 jsonDocument=i.extractFeatures(text)
-
+                #print jsonDocument
                 jsonDocument['images']=i.extractImages(soup)
 
                 jsonDocument['title']=webpagetitle
                 jsonDocument['bodytext']=text
                 jsonDocument['url']=url
                 jsonDocument['username']=username
+
                 jsonDocument['screenshot']=i.getwebpagescreenshot(url)
 
                 #print json.dumps(jsonDocument)
@@ -75,7 +67,6 @@ def gethtml():
                 esresponse=''
                 if jsonld:
                     esresponse = i.publishtoes(jsonld)
-
 
                 return json.dumps(esresponse)
 

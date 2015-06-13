@@ -56,16 +56,6 @@ class Ingestor (object):
         self.ContextURL = configuration.get('KarmaRestServer', 'ContextURL')
         self.BaseURI = configuration.get('KarmaRestServer', 'BaseURI')
 
-        #.esHostName = configuration.get('ElasticSearch', 'hostname')
-        #self.esPort = configuration.get('ElasticSearch', 'port')
-        #self.esIndexName = configuration.get('ElasticSearch', 'index')
-        #self.esDocType = configuration.get('ElasticSearch', 'doctype')
-        #self.esProtocol = configuration.get('ElasticSearch', 'protocol')
-        #self.esUserName = configuration.get('ElasticSearch', 'username')
-        #self.esPassword = configuration.get('ElasticSearch', 'password')
-
-
-
         self.esHostName = formParameters['eshost']
         self.esPort = formParameters['esport']
         self.esIndexName = formParameters['esindex']
@@ -111,6 +101,7 @@ class Ingestor (object):
     def publishtoes(self,jsondoc):
 
         esUrl = self.getESObject()
+
         es = Elasticsearch([esUrl], show_ssl_warnings=False)
         jsonarray = json.loads(jsondoc)
         jsonobj=jsonarray[0]
@@ -140,22 +131,27 @@ class Ingestor (object):
         for image in images:
             imagejsonobject={}
 
-            imgurl=image['src']
+            if image.has_attr('src'):
 
-            imagejsonobject['imageurl']=imgurl
+                imgurl=image['src']
 
-            imghash=hashlib.sha1(imgurl.encode('utf-8')).hexdigest().upper()
-            imgext = imgurl[imgurl.rindex('.')+1:]
-            imagename=imghash+'.'+imgext
-            imagejsonobject['s3imageurl'] = s3imageurlprefix+imagename
+                if imgurl.startswith('http'):
+                    imagejsonobject['imageurl']=imgurl
 
-            response = requests.get(imgurl, stream=False)
+                    imghash=hashlib.sha1(imgurl.encode('utf-8')).hexdigest().upper()
+                    imgext = imgurl[imgurl.rindex('.')+1:]
+                    imagename=imghash+'.'+imgext
+                    imagejsonobject['s3imageurl'] = s3imageurlprefix+imagename
 
-            imagejsonarray.append(imagejsonobject)
+                    response = requests.get(imgurl, stream=False)
 
-            self.uploadImagetoS3(response.content,imagename)
+                    if response.status_code == requests.codes.ok:
 
-            del response
+                        imagejsonarray.append(imagejsonobject)
+
+                        self.uploadImagetoS3(response.content,imagename)
+
+                    del response
 
         return imagejsonarray
 
@@ -205,7 +201,7 @@ class Ingestor (object):
             self.logi("Screenshot image name:" + imagename + " for url:" + url)
             return self.s3ImageUrlPrefix + imagename
         else:
-            self.loge("Bad response from splash server:" + response)
+            self.loge("Bad response from splash server:" + response.content)
             return ''
 
     def extractFeatures(self,bodyText):
