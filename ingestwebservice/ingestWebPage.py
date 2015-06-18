@@ -65,10 +65,15 @@ def gethtml():
                 jsonld = i.generateJSON(jsonDocument)
 
                 esresponse=''
+                objId=''
                 if jsonld:
                     esresponse = i.publishtoes(jsonld)
 
-                return json.dumps(esresponse)
+                    responseJson = json.loads(json.dumps(esresponse))
+                    objId = responseJson['_id']
+
+                #return json.dumps(esresponse)
+                return "Page ingested, ElasticSearch Id:" + objId
 
             else:
                 logi("Url: " + url + " already exists")

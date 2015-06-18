@@ -197,7 +197,7 @@ class Ingestor (object):
         response=requests.get(splashurl,stream=False)
 
         if response.status_code == requests.codes.ok:
-            self.uploadImagetoS3(response.content,imagename)
+            #self.loImagetoS3(response.content,imagename)
             self.logi("Screenshot image name:" + imagename + " for url:" + url)
             return self.s3ImageUrlPrefix + imagename
         else:
