@@ -18,12 +18,13 @@ function callIngestorService()
 
 function ingestCurrentTabUrl(url,tabId)
 {
+
     $.ajax({
       type:'POST',
       contentType: "application/text",
       //dataType:"jsonp",
       data: '{"url":"' + url+ '","username":"aman", "eshost": "localhost", "esport": "9200","esindex":"dig-ingest01","esdoctype":"WebPage", "esprotocol":"http","esusername":"","espassword":""}',
-      url: "http://localhost:5000/ingest/webpage/"
+      url: "http://localhost:5000/ingest/webpage"
     })
       .done(function( data ) {
         processResponse(data,"OK",tabId)

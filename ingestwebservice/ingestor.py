@@ -77,6 +77,7 @@ class Ingestor (object):
 
 
 
+
     def generateJSON(self,jsonDocument):
 
         karmaurl=self.karmaProtocol + '://' + self.karmaHostName + ':' + self.karmaPort + self.karmaRestPath
@@ -95,7 +96,7 @@ class Ingestor (object):
             self.logi("Json ld generation succeeded")
             return response.content
         else:
-            self.loge("Bad response from karma rest server:" + response)
+            self.loge("Bad response from karma rest server:" + str(response))
             return None
 
     def publishtoes(self,jsondoc):
@@ -110,6 +111,7 @@ class Ingestor (object):
         self.logi("Uploading json to ElasticSearch, id:" + objkey + "...")
         res = es.index(index=self.esIndexName, doc_type=self.esDocType, body=json.dumps(jsonobj), id=objkey)
         self.logi("Uploaded json to ElasticSearch, id:" + objkey)
+
         return res
 
     def getESObject(self):
@@ -316,10 +318,10 @@ class Ingestor (object):
                         self.logi("The url:" + url + " already exists in ElasticSearch")
                         return True
                 else:
-                    self.loge("Bad ElasticSearch query response while checking if the url exists:" + response.content)
+                    self.loge("Bad ElasticSearch query response while checking if the url exists:" + str(response.content))
                     return False
             else:
-                self.loge("Bad http response while querying ElasticSearch:" + response.content)
+                self.loge("Bad http response while querying ElasticSearch:" + str(response.content))
                 return False
         except Exception as e:
             print >> sys.stderr, e

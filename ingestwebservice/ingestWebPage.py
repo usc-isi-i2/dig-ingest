@@ -15,7 +15,7 @@ from ingestor import Ingestor
 
 app = Flask(__name__)
 
-@app.route('/ingest/webpage/',methods=['POST'])
+@app.route('/ingest/webpage',methods=['POST'])
 def gethtml():
 
     try:
@@ -59,6 +59,7 @@ def gethtml():
                 jsonDocument['username']=username
 
                 jsonDocument['screenshot']=i.getwebpagescreenshot(url)
+                #jsonDocument['screenshot']=''
 
                 #print json.dumps(jsonDocument)
 
@@ -70,6 +71,7 @@ def gethtml():
                     esresponse = i.publishtoes(jsonld)
 
                     responseJson = json.loads(json.dumps(esresponse))
+
                     objId = responseJson['_id']
 
                 #return json.dumps(esresponse)
